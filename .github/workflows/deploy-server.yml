@@ -22,7 +22,7 @@ jobs:
             cat <<EOT > .env
             PORT=3000
             NODE_ENV=production
-            DATABASE_URL="mysql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@assesment-wpp-db:3306/${{ secrets.DB_NAME }}"
+            DATABASE_URL="postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@assesment-wpp-db:5432/${{ secrets.DB_NAME }}?schema=public"
             CORS_ORIGINS="${{ secrets.CORS_ORIGINS }}"
             GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
             DB_USER="${{ secrets.DB_USER }}"
