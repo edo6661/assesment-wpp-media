@@ -33,6 +33,6 @@ networks:
     external: true
   assesment-internal:
     driver: bridge
-
+# test trigger ci 7
 volumes:
   assesment_db_data:
