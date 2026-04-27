@@ -16,7 +16,6 @@ export class DataRepository implements IDataRepository {
     switch (intent) {
       case "product_search": {
         const where: Prisma.ProductWhereInput = {};
-
         if (entities.category) {
           where.category = { contains: entities.category };
         }
@@ -26,7 +25,6 @@ export class DataRepository implements IDataRepository {
         if (entities.price_max) {
           where.price = { lte: entities.price_max };
         }
-
         return await this.prisma.product.findMany({
           where,
           take: 10,
@@ -39,6 +37,35 @@ export class DataRepository implements IDataRepository {
           where.age_range = { contains: entities.target };
         }
         return await this.prisma.audience.findMany({ where, take: 10 });
+      }
+
+      case "campaign_search": {
+        const where: Prisma.CampaignWhereInput = {};
+        if (entities.budget_max) {
+          where.budget = { lte: entities.budget_max };
+        }
+
+        return await this.prisma.campaign.findMany({
+          where,
+          include: {
+            product: true,
+            audience: true,
+          },
+          take: 10,
+        });
+      }
+
+      case "performance_query": {
+        return await this.prisma.performance.findMany({
+          include: {
+            campaign: {
+              include: {
+                product: true,
+              },
+            },
+          },
+          take: 10,
+        });
       }
 
       default:
