@@ -1,0 +1,11 @@
+services:
+  assesment-wpp:
+    build: .
+    container_name: assesment-wpp
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
