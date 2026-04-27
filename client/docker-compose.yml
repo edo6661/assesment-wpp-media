@@ -1,7 +1,7 @@
 services:
-  assesment-wpp:
+  assesment-wpp-web:
     build: .
-    container_name: assesment-wpp
+    container_name: assesment-wpp-web
     restart: unless-stopped
     networks:
       - proxy-network
