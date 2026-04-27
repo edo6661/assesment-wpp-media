@@ -6,8 +6,8 @@ This repository contains a full-stack application built for the AI Engineer/Full
 
 The project is split into two main directories:
 
-- `/backend`: Node.js, Express, TypeScript, Prisma ORM, and Google Generative AI. Built with Clean Architecture principles.
-- `/frontend`: React, Vite, Tailwind CSS, TypeScript, and React Query.
+- `/server`: Node.js, Express, TypeScript, Prisma ORM, and Google Generative AI. Built with Clean Architecture principles.
+- `/client`: React, Vite, Tailwind CSS, TypeScript, and React Query.
 
 ## Prerequisites
 
@@ -19,49 +19,49 @@ The project is split into two main directories:
 
 ### 1. Backend Setup
 
-Navigate to the backend directory:
-\`\`\`bash
-cd backend
+Navigate to the server directory:
+```bash
+cd server
 npm install
-\`\`\`
+```
 
-Create a `.env` file in the `backend` directory based on your environment:
-\`\`\`env
+Create a `.env` file in the `server` directory based on your environment:
+```env
 NODE_ENV=development
 PORT=3000
 DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/wpp_assessment"
 CORS_ORIGINS="http://localhost:5173"
 GEMINI_API_KEY="your_gemini_api_key_here"
-\`\`\`
+```
 
 Run database migrations and seed the database with sample data:
-\`\`\`bash
+```bash
 npm run db:push
 npm run seed
-\`\`\`
+```
 
 Start the backend server:
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 ### 2. Frontend Setup
 
-Open a new terminal and navigate to the frontend directory:
-\`\`\`bash
-cd frontend
+Open a new terminal and navigate to the client directory:
+```bash
+cd client
 npm install
-\`\`\`
+```
 
-Create a `.env` file in the `frontend` directory:
-\`\`\`env
+Create a `.env` file in the `client` directory:
+```env
 VITE_API_URL="http://localhost:3000/api/v1"
-\`\`\`
+```
 
 Start the frontend development server:
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 ## Assumptions
 
