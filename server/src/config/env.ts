@@ -2,6 +2,7 @@ import { z } from "zod";
 import dotenv from "dotenv";
 
 dotenv.config();
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
@@ -12,12 +13,6 @@ const envSchema = z.object({
     .string()
     .default("http://localhost:3000")
     .transform((val) => val.split(",").map((origin) => origin.trim())),
-  JWT_SECRET: z.string().min(10, "JWT Secret must be at least 10 characters"),
-  CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  CLOUDINARY_API_KEY: z.string().min(1),
-  CLOUDINARY_API_SECRET: z.string().min(1),
-  CLOUDINARY_URL: z.string().min(1),
-  SENTRY_DSN: z.string().min(1),
   GEMINI_API_KEY: z.string().min(1),
 });
 

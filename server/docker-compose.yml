@@ -18,7 +18,7 @@ services:
     command: --skip-name-resolve --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3308:3306" # <-- Diubah ke 3308 karena 3307 sudah dipakai kavling
+      - "127.0.0.1:3308:3306"
     environment:
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
@@ -35,6 +35,6 @@ networks:
     external: true
   assesment-internal:
     driver: bridge
-# test trigger ci 4
+
 volumes:
   assesment_db_data:
