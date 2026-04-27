@@ -62,7 +62,7 @@ if (env.NODE_ENV !== "test") {
 
 app.get("/", (_req, res) => {
   res.status(200).json({
-    message: "Kavling API Service is Running 🚀",
+    message: "AI Product Search API is Running",
     version: "1.0.0",
     server_time: new Date().toISOString(),
   });

@@ -15,7 +15,7 @@ const shutdown = (signal: string) => {
   });
 };
 process.on("uncaughtException", (err) => {
-  logger.fatal(err, "Uncaught Exception terdeteksi. Mematikan server...");
+  logger.fatal(err, "Uncaught Exception detected. Shutting down server...");
   process.exit(1);
 });
 

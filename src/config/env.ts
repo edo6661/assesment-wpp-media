@@ -12,7 +12,7 @@ const envSchema = z.object({
     .string()
     .default("http://localhost:3000")
     .transform((val) => val.split(",").map((origin) => origin.trim())),
-  JWT_SECRET: z.string().min(10, "JWT Secret minimal 10 karakter"),
+  JWT_SECRET: z.string().min(10, "JWT Secret must be at least 10 characters"),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
