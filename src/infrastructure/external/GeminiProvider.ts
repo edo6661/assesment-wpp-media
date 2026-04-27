@@ -29,31 +29,34 @@ export class GeminiProvider implements IAiProvider {
           intent: {
             type: SchemaType.STRING,
             description:
-              "Klasifikasikan intent user ke salah satu dari: product_search, audience_search, campaign_search, performance_query, atau unknown.",
+              "Classify the user intent into one of the following: product_search, audience_search, campaign_search, performance_query, or unknown.",
           },
           entities: {
             type: SchemaType.OBJECT,
             properties: {
               category: {
                 type: SchemaType.STRING,
-                description:
-                  "Kategori produk, misal: skincare, laptop, sepatu.",
+                description: "Product category, e.g., skincare, laptop, shoes.",
               },
               target: {
                 type: SchemaType.STRING,
-                description: "Target audiens, misal: gen z, remaja, dewasa.",
+                description: "Target audience, e.g., gen z, teens, adults.",
               },
               price_max: {
                 type: SchemaType.NUMBER,
-                description: "Harga maksimal yang disebutkan dalam angka.",
+                description: "Maximum price mentioned as a number.",
               },
               brand: {
                 type: SchemaType.STRING,
-                description: "Merek spesifik yang disebutkan.",
+                description: "Specific brand mentioned.",
               },
               budget_max: {
                 type: SchemaType.NUMBER,
-                description: "Budget maksimal untuk campaign dalam angka.",
+                description: "Maximum budget for the campaign as a number.",
+              },
+              campaign_name: {
+                type: SchemaType.STRING,
+                description: "Specific name of the queried campaign.",
               },
             },
           },
@@ -69,9 +72,9 @@ export class GeminiProvider implements IAiProvider {
         },
       });
 
-      const systemInstruction = `Kamu adalah sistem AI pengekstrak informasi. 
-      Tugasmu adalah mengubah input natural language dari user menjadi format JSON yang terstruktur. 
-      Jangan berasumsi, jika entitas tidak disebutkan, biarkan kosong.`;
+      const systemInstruction = `You are an AI information extraction system. 
+      Your task is to convert natural language input from the user into a structured JSON format. 
+      Do not make assumptions; if an entity is not explicitly mentioned, leave it empty.`;
 
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -83,15 +86,19 @@ export class GeminiProvider implements IAiProvider {
 
       const textResponse = result.response.text();
 
-      const parsedJson = JSON.parse(textResponse);
+      const cleanedText = textResponse
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
 
+      const parsedJson = JSON.parse(cleanedText);
       const validatedData = predictionSchema.parse(parsedJson);
-
       return validatedData;
-    } catch (error) {
+    } catch (e) {
+      console.error(e);
       throw new AppError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        "Gagal mengekstrak informasi dari input. Pastikan input jelas.",
+        StatusCodes.BAD_REQUEST,
+        "Failed to extract information. Please ensure your prompt is clear and relevant.",
       );
     }
   }

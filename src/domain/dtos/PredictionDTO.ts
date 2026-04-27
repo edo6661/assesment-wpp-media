@@ -14,6 +14,7 @@ export const predictionSchema = z.object({
     price_max: z.number().optional(),
     brand: z.string().optional(),
     budget_max: z.number().optional(),
+    campaign_name: z.string().optional(),
   }),
 });
 

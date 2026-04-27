@@ -56,11 +56,21 @@ export class DataRepository implements IDataRepository {
       }
 
       case "performance_query": {
+        const where: Prisma.PerformanceWhereInput = {};
+
+        if (entities.campaign_name) {
+          where.campaign = {
+            name: { contains: entities.campaign_name },
+          };
+        }
+
         return await this.prisma.performance.findMany({
+          where,
           include: {
             campaign: {
               include: {
                 product: true,
+                audience: true,
               },
             },
           },

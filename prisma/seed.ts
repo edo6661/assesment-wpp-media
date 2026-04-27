@@ -45,6 +45,43 @@ async function main() {
       },
     ],
   });
+  const products = await prisma.product.findMany();
+  const audiences = await prisma.audience.findMany();
+
+  if (products.length > 0 && audiences.length > 0) {
+    await prisma.campaign.create({
+      data: {
+        name: "Gen Z Glowing Campaign",
+        budget: 5000000,
+        product_id: products[0].id,
+        audience_id: audiences[0].id,
+        performance: {
+          create: {
+            impressions: 15000,
+            clicks: 1200,
+            conversions: 85,
+          },
+        },
+      },
+    });
+
+    await prisma.campaign.create({
+      data: {
+        name: "Pro Gamer Gear Push",
+        budget: 15000000,
+        product_id: products[2].id,
+        audience_id: audiences[1].id,
+        performance: {
+          create: {
+            impressions: 45000,
+            clicks: 3400,
+            conversions: 210,
+          },
+        },
+      },
+    });
+  }
+
   console.log("Finished seed.");
 }
 
