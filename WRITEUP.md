@@ -9,7 +9,7 @@ To ensure maintainability, scalability, and testability, the backend strictly fo
 
 - **Domain Layer:** Defines core business rules, error handling (`AppError`), and Data Transfer Objects (Zod schemas).
 - **Application Layer:** Contains the business logic orchestrator (`PredictUseCase`), ensuring the AI provider and Database repository interact without tight coupling.
-- **Infrastructure Layer:** Handles external dependencies. This includes the `GeminiProvider` (external AI API) and `DataRepository` (Prisma ORM for MySQL). Dependency Injection is managed via a centralized `container.ts`.
+- **Infrastructure Layer:** Handles external dependencies. This includes the `GeminiProvider` (external AI API) and `DataRepository` (Prisma ORM for **PostgreSQL**). Dependency Injection is managed via a centralized `container.ts`.
 - **Presentation Layer:** Manages HTTP requests and responses via Express Controllers and Routers.
 - **Testability & Reliability:** By strictly adhering to Clean Architecture, the business logic (`PredictUseCase`) is fully isolated from external dependencies like Prisma and the Gemini API. This enabled a robust Test-Driven Development (TDD) approach using `vitest`. Core components, including use cases, validation middlewares, and error handlers, are thoroughly unit-tested without hitting the actual database or consuming AI API quotas.
 

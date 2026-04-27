@@ -12,7 +12,7 @@ The project is split into two main directories:
 ## Prerequisites
 
 - Node.js (v18 or higher)
-- MySQL database running locally or remotely
+- PostgreSQL database running locally (Docker) or remotely
 - Google Gemini API Key
 
 ## Setup & Installation
@@ -20,27 +20,31 @@ The project is split into two main directories:
 ### 1. Backend Setup
 
 Navigate to the server directory:
+
 ```bash
 cd server
 npm install
 ```
 
 Create a `.env` file in the `server` directory based on your environment:
+
 ```env
 NODE_ENV=development
 PORT=3000
-DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/wpp_assessment"
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/wpp_assessment?schema=public"
 CORS_ORIGINS="http://localhost:5173"
 GEMINI_API_KEY="your_gemini_api_key_here"
 ```
 
 Run database migrations and seed the database with sample data:
+
 ```bash
 npm run db:push
 npm run seed
 ```
 
 Start the backend server:
+
 ```bash
 npm run dev
 ```
@@ -48,17 +52,20 @@ npm run dev
 ### 2. Frontend Setup
 
 Open a new terminal and navigate to the client directory:
+
 ```bash
 cd client
 npm install
 ```
 
 Create a `.env` file in the `client` directory:
+
 ```env
 VITE_API_URL="http://localhost:3000/api/v1"
 ```
 
 Start the frontend development server:
+
 ```bash
 npm run dev
 ```
@@ -67,7 +74,7 @@ npm run dev
 
 - The user inputs will generally fall within the domains of products, marketing campaigns, target audiences, and performance metrics.
 - The Gemini model (`gemini-2.5-flash`) is highly capable of adhering to the provided JSON Schema constraints.
-- A relational database (MySQL) is sufficient for the scale of this exercise.
+- A relational database (PostgreSQL) is sufficient for the scale of this exercise and provides robust handling of complex queries.
 
 ## Limitations
 
