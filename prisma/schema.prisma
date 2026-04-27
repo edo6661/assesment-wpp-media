@@ -1,0 +1,75 @@
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id        String     @id @default(uuid())
+  name      String
+  category  String
+  price     Decimal    @db.Decimal(10, 2)
+  brand     String
+  
+  campaigns Campaign[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("products")
+}
+
+model Audience {
+  id          String     @id @default(uuid())
+  name        String
+  age_range   String     
+  preferences String     @db.Text
+  
+  campaigns   Campaign[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("audiences")
+}
+
+model Campaign {
+  id          String    @id @default(uuid())
+  name        String
+  budget      Decimal   @db.Decimal(12, 2)
+  
+  product_id  String
+  product     Product   @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  
+  audience_id String
+  audience    Audience  @relation(fields: [audience_id], references: [id], onDelete: Cascade)
+
+  performance Performance?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([product_id])
+  @@index([audience_id])
+  @@map("campaigns")
+}
+
+model Performance {
+  id          String   @id @default(uuid())
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+
+  campaign_id String   @unique
+  campaign    Campaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("performance")
+}
