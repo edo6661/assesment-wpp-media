@@ -1,11 +1,9 @@
 name: Continuous Deployment Backend
-
 on:
   push:
     branches: ["main"]
     paths:
       - "server/**"
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,26 +18,18 @@ jobs:
           script: |
             cd ~/apps/assesment-wpp
             git pull origin main
-
             cd server
-
             cat <<EOT > .env
             PORT=3000
             NODE_ENV=production
-            DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            DATABASE_URL="mysql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@assesment-wpp-db:3306/${{ secrets.DB_NAME }}"
             CORS_ORIGINS="${{ secrets.CORS_ORIGINS }}"
-            JWT_SECRET="${{ secrets.JWT_SECRET }}"
-            CLOUDINARY_CLOUD_NAME="${{ secrets.CLOUDINARY_CLOUD_NAME }}"
-            CLOUDINARY_API_KEY="${{ secrets.CLOUDINARY_API_KEY }}"
-            CLOUDINARY_API_SECRET="${{ secrets.CLOUDINARY_API_SECRET }}"
-            CLOUDINARY_URL="${{ secrets.CLOUDINARY_URL }}"
-            SENTRY_DSN="${{ secrets.SENTRY_DSN }}"
             GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USER="${{ secrets.DB_USER }}"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            DB_NAME="${{ secrets.DB_NAME }}"
             EOT
-
             docker compose up -d --build
             docker compose exec -T app npx prisma db push
+            docker compose exec -T app npm run seed
             docker image prune -af
