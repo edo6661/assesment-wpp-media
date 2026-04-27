@@ -10,5 +10,6 @@ export type QueryDataResult =
 export interface IDataRepository {
   fetchDataByIntentAndEntities(
     prediction: PredictionResult,
+    limit: number,
   ): Promise<QueryDataResult>;
 }

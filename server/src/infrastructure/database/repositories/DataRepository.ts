@@ -10,6 +10,7 @@ export class DataRepository implements IDataRepository {
 
   async fetchDataByIntentAndEntities(
     prediction: PredictionResult,
+    limit: number,
   ): Promise<QueryDataResult> {
     const { intent, entities } = prediction;
 
@@ -27,7 +28,7 @@ export class DataRepository implements IDataRepository {
         }
         return await this.prisma.product.findMany({
           where,
-          take: 10,
+          take: limit,
         });
       }
 

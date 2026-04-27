@@ -7,11 +7,13 @@ export class PredictUseCase {
     private dataRepository: IDataRepository,
   ) {}
 
-  async execute(text: string) {
+  async execute(text: string, limit = 10) {
     const prediction = await this.aiProvider.extractIntentAndEntities(text);
 
-    const data =
-      await this.dataRepository.fetchDataByIntentAndEntities(prediction);
+    const data = await this.dataRepository.fetchDataByIntentAndEntities(
+      prediction,
+      limit,
+    );
 
     return {
       structured_output: prediction,

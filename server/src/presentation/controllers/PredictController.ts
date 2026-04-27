@@ -8,8 +8,8 @@ export class PredictController {
 
   predict = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { text } = req.body;
-      const result = await this.predictUseCase.execute(text);
+      const { text, limit } = req.body;
+      const result = await this.predictUseCase.execute(text, limit);
 
       sendResponse(
         res,
