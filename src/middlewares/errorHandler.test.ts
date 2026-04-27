@@ -127,7 +127,6 @@ describe("Global Error Handler Middleware", () => {
   });
   it("harus menangani SyntaxError (Malformed JSON) dari express body parser", () => {
     const error = new SyntaxError("Unexpected string in JSON");
-    // Mocking properti tambahan yang disisipkan oleh body-parser express
     (error as any).status = 400;
     (error as any).body = "{ bad json }";
 
