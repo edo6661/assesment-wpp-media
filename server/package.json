@@ -18,7 +18,8 @@
     "db:push:test": "dotenv -e .env.test -- npx prisma db push",
     "test": "dotenv -e .env.test -- vitest",
     "test:ui": "dotenv -e .env.test -- vitest --ui",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "seed:prod": "tsx prisma/seed.js"
   },
   "dependencies": {
     "@google-cloud/vision": "^5.3.4",
