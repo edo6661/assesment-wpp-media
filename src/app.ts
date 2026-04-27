@@ -1,13 +1,13 @@
 import { env } from "./config/env";
-import * as Sentry from "@sentry/node";
-if (env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: env.SENTRY_DSN,
-    environment: env.NODE_ENV,
-    tracesSampleRate: 1.0,
-    enableLogs: true,
-  });
-}
+// import * as Sentry from "@sentry/node";
+// if (env.SENTRY_DSN) {
+//   Sentry.init({
+//     dsn: env.SENTRY_DSN,
+//     environment: env.NODE_ENV,
+//     tracesSampleRate: 1.0,
+//     enableLogs: true,
+//   });
+// }
 import express, { type Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -22,7 +22,7 @@ import {
 import { logger } from "./utils/logger";
 import hpp from "hpp";
 const app: Application = express();
-Sentry.setupExpressErrorHandler(app);
+// Sentry.setupExpressErrorHandler(app);
 
 app.set("trust proxy", 1);
 app.use(helmet());

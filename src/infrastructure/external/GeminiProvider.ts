@@ -15,8 +15,7 @@ import { StatusCodes } from "http-status-codes";
 export class GeminiProvider implements IAiProvider {
   private genAI: GoogleGenerativeAI;
 
-  private modelName = "gemini-3.1-flash";
-
+  private modelName = "gemini-2.5-flash";
   constructor() {
     this.genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
   }
