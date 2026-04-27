@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     networks:
       - proxy-network
-# test trigger ci 2
+# test trigger ci 3
 networks:
   proxy-network:
     external: true
