@@ -23,7 +23,7 @@ export class DataRepository implements IDataRepository {
         if (entities.brand) {
           where.brand = { contains: entities.brand, mode: "insensitive" };
         }
-        if (entities.price_max) {
+        if (entities.price_max && entities.price_max > 0) {
           where.price = { lte: entities.price_max };
         }
         return await this.prisma.product.findMany({
@@ -42,7 +42,7 @@ export class DataRepository implements IDataRepository {
 
       case "campaign_search": {
         const where: Prisma.CampaignWhereInput = {};
-        if (entities.budget_max) {
+        if (entities.budget_max && entities.budget_max > 0) {
           where.budget = { lte: entities.budget_max };
         }
 

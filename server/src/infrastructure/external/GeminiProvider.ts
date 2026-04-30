@@ -72,9 +72,13 @@ export class GeminiProvider implements IAiProvider {
       });
 
       const systemInstruction = `You are an AI information extraction system. 
-        Your task is to convert natural language input from the user into a structured JSON format. 
-        Do not make assumptions; if an entity is not explicitly mentioned, leave it empty.
-        IMPORTANT: Always normalize entities to their singular base form (e.g., convert "millennials" to "millennial", "shoes" to "shoe", "gamers" to "gamer"). Ensure all text is in lowercase.`;
+        Your task is to convert natural language input into a structured JSON format. 
+        Do not make assumptions. If an entity is not explicitly mentioned, omit the field entirely. DO NOT use -1, 0, or "none" for empty fields.
+        
+        IMPORTANT RULES:
+        1. Normalize entities to singular base form (e.g., "millennials" -> "millennial").
+        2. DO NOT include generic words like "products", "items", "campaigns", or "audience" in the extracted values. If user says "health products", the category is simply "health".
+        3. Ensure all extracted text is in lowercase.`;
 
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
