@@ -72,8 +72,9 @@ export class GeminiProvider implements IAiProvider {
       });
 
       const systemInstruction = `You are an AI information extraction system. 
-      Your task is to convert natural language input from the user into a structured JSON format. 
-      Do not make assumptions; if an entity is not explicitly mentioned, leave it empty.`;
+        Your task is to convert natural language input from the user into a structured JSON format. 
+        Do not make assumptions; if an entity is not explicitly mentioned, leave it empty.
+        IMPORTANT: Always normalize entities to their singular base form (e.g., convert "millennials" to "millennial", "shoes" to "shoe", "gamers" to "gamer"). Ensure all text is in lowercase.`;
 
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
