@@ -18,10 +18,10 @@ export class DataRepository implements IDataRepository {
       case "product_search": {
         const where: Prisma.ProductWhereInput = {};
         if (entities.category) {
-          where.category = { contains: entities.category };
+          where.category = { contains: entities.category, mode: "insensitive" };
         }
         if (entities.brand) {
-          where.brand = { contains: entities.brand };
+          where.brand = { contains: entities.brand, mode: "insensitive" };
         }
         if (entities.price_max) {
           where.price = { lte: entities.price_max };
@@ -35,7 +35,7 @@ export class DataRepository implements IDataRepository {
       case "audience_search": {
         const where: Prisma.AudienceWhereInput = {};
         if (entities.target) {
-          where.age_range = { contains: entities.target };
+          where.age_range = { contains: entities.target, mode: "insensitive" };
         }
         return await this.prisma.audience.findMany({ where, take: 10 });
       }
