@@ -26,7 +26,7 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
             }`}
           {...props}
         >
-          <option value="" disabled>Pilih {label}...</option>
+          <option value="" disabled>Select {label}...</option>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value} className="py-2">
               {opt.label}

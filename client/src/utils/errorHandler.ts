@@ -5,13 +5,12 @@ export const handleApiError = (error: unknown): ActionResult => {
   if (import.meta.env.DEV) {
     console.error("API Request failed:", error);
   }
-
   if (isAxiosError(error)) {
     return {
       success: false,
       message:
         error.response?.data?.message ||
-        "Terjadi kesalahan pada server. Silakan coba lagi.",
+        "A server error occurred. Please try again.",
       errors: error.response?.data?.error,
     };
   }
@@ -19,8 +18,6 @@ export const handleApiError = (error: unknown): ActionResult => {
   return {
     success: false,
     message:
-      error instanceof Error
-        ? error.message
-        : "Terjadi kesalahan tidak terduga.",
+      error instanceof Error ? error.message : "An unexpected error occurred.",
   };
 };

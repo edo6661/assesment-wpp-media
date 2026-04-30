@@ -1,0 +1,1178 @@
+kode backendS:
+
+<file path="package.json">
+{
+  "name": "assement-wpp",
+  "version": "1.0.0",
+  "description": "Assement-wpp",
+  "license": "ISC",
+  "author": "Edawg",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsup src/server.ts --format esm --clean",
+    "start": "node dist/server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prisma:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:push:test": "dotenv -e .env.test -- npx prisma db push",
+    "test": "dotenv -e .env.test -- vitest",
+    "test:ui": "dotenv -e .env.test -- vitest --ui",
+    "seed": "tsx prisma/seed.ts",
+    "seed:prod": "tsx prisma/seed.js"
+  },
+  "dependencies": {
+    "@google-cloud/vision": "^5.3.4",
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^6.19.2",
+    "@sentry/node": "^10.42.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.9.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "http-status-codes": "^2.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.0",
+    "pdfkit": "^0.18.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.3.0",
+    "@types/bcrypt": "^6.0.0",
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/hpp": "^0.2.7",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^25.3.0",
+    "@types/pdfkit": "^0.17.5",
+    "@types/pg": "^8.16.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/supertest": "^7.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^9.39.3",
+    "pino-pretty": "^13.1.3",
+    "prisma": "^6.19.2",
+    "supertest": "^7.2.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^3.2.4",
+    "vitest-mock-extended": "^3.1.0"
+  }
+}
+</file>
+
+<file path="prisma/schema.prisma">
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id        String     @id @default(uuid())
+  name      String
+  category  String
+  price     Decimal    @db.Decimal(10, 2)
+  brand     String
+  
+  campaigns Campaign[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("products")
+}
+
+model Audience {
+  id          String     @id @default(uuid())
+  name        String
+  age_range   String     
+  preferences String     @db.Text
+  
+  campaigns   Campaign[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("audiences")
+}
+
+model Campaign {
+  id          String    @id @default(uuid())
+  name        String
+  budget      Decimal   @db.Decimal(12, 2)
+  
+  product_id  String
+  product     Product   @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  
+  audience_id String
+  audience    Audience  @relation(fields: [audience_id], references: [id], onDelete: Cascade)
+
+  performance Performance?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([product_id])
+  @@index([audience_id])
+  @@map("campaigns")
+}
+
+model Performance {
+  id          String   @id @default(uuid())
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+
+  campaign_id String   @unique
+  campaign    Campaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("performance")
+}
+</file>
+
+<file path="prisma/seed.ts">
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  await prisma.performance.deleteMany();
+  await prisma.campaign.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.audience.deleteMany();
+
+  await prisma.product.createMany({
+    data: [
+      {
+        name: "Glow Up Serum",
+        category: "skincare",
+        price: 85000,
+        brand: "SkinJoy",
+      },
+      {
+        name: "Acne Clear Toner",
+        category: "skincare",
+        price: 120000,
+        brand: "DermaCare",
+      },
+      {
+        name: "Pro Gaming Mouse",
+        category: "electronics",
+        price: 450000,
+        brand: "TechGear",
+      },
+      {
+        name: "Mechanical Keyboard X1",
+        category: "electronics",
+        price: 1250000,
+        brand: "TechGear",
+      },
+      {
+        name: "Whey Protein Isolate 1kg",
+        category: "health",
+        price: 850000,
+        brand: "MusclePro",
+      },
+      {
+        name: "Pre-Workout Formula",
+        category: "health",
+        price: 350000,
+        brand: "MusclePro",
+      },
+      {
+        name: "Cold Brew Arabica Beans 250g",
+        category: "food & beverage",
+        price: 95000,
+        brand: "RoastDaily",
+      },
+      {
+        name: "Manual Coffee Grinder",
+        category: "equipment",
+        price: 250000,
+        brand: "BrewMaster",
+      },
+      {
+        name: "Running Shoes Ultra",
+        category: "apparel",
+        price: 1500000,
+        brand: "AeroStep",
+      },
+    ],
+  });
+
+  await prisma.audience.createMany({
+    data: [
+      {
+        name: "Gen Z Skincare Enthusiasts",
+        age_range: "gen z",
+        preferences: "cruelty-free, vegan, affordable",
+      },
+      {
+        name: "Millennial Gamers",
+        age_range: "millennial",
+        preferences: "performance, rgb, ergonomic",
+      },
+      {
+        name: "Fitness & Bodybuilding Community",
+        age_range: "adults",
+        preferences: "high-protein, muscle gain, gym lifestyle",
+      },
+      {
+        name: "Home Brewing Enthusiasts",
+        age_range: "millennial",
+        preferences: "specialty coffee, manual brew, aesthetics",
+      },
+      {
+        name: "Active Marathon Runners",
+        age_range: "all ages",
+        preferences: "endurance, lightweight, comfort",
+      },
+    ],
+  });
+
+  const products = await prisma.product.findMany();
+  const audiences = await prisma.audience.findMany();
+
+  if (products.length > 0 && audiences.length > 0) {
+    const getProductId = (name: string) =>
+      products.find((p) => p.name === name)?.id || products[0].id;
+    const getAudienceId = (name: string) =>
+      audiences.find((a) => a.name === name)?.id || audiences[0].id;
+
+    await prisma.campaign.create({
+      data: {
+        name: "Gen Z Glowing Campaign",
+        budget: 5000000,
+        product_id: getProductId("Glow Up Serum"),
+        audience_id: getAudienceId("Gen Z Skincare Enthusiasts"),
+        performance: {
+          create: { impressions: 15000, clicks: 1200, conversions: 85 },
+        },
+      },
+    });
+
+    await prisma.campaign.create({
+      data: {
+        name: "Pro Gamer Gear Push",
+        budget: 15000000,
+        product_id: getProductId("Pro Gaming Mouse"),
+        audience_id: getAudienceId("Millennial Gamers"),
+        performance: {
+          create: { impressions: 45000, clicks: 3400, conversions: 210 },
+        },
+      },
+    });
+
+    await prisma.campaign.create({
+      data: {
+        name: "Summer Muscle Gain",
+        budget: 8000000,
+        product_id: getProductId("Whey Protein Isolate 1kg"),
+        audience_id: getAudienceId("Fitness & Bodybuilding Community"),
+        performance: {
+          create: { impressions: 32000, clicks: 2100, conversions: 150 },
+        },
+      },
+    });
+
+    await prisma.campaign.create({
+      data: {
+        name: "Morning Cold Brew Promo",
+        budget: 3500000,
+        product_id: getProductId("Cold Brew Arabica Beans 250g"),
+        audience_id: getAudienceId("Home Brewing Enthusiasts"),
+        performance: {
+          create: { impressions: 12000, clicks: 800, conversions: 65 },
+        },
+      },
+    });
+  }
+
+  console.log("✅ Finished seeding database with expanded data.");
+}
+
+main()
+  .catch((e) => {
+    console.error("❌ Error seeding data:", e);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+</file>
+
+<file path="src/app.ts">
+import { env } from "./config/env";
+// import * as Sentry from "@sentry/node";
+// if (env.SENTRY_DSN) {
+//   Sentry.init({
+//     dsn: env.SENTRY_DSN,
+//     environment: env.NODE_ENV,
+//     tracesSampleRate: 1.0,
+//     enableLogs: true,
+//   });
+// }
+import express, { type Application } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import pinoHttp from "pino-http";
+import compression from "compression";
+import routes from "./presentation/routes";
+import {
+  notFoundHandler,
+  globalErrorHandler,
+} from "./middlewares/errorHandler";
+import { logger } from "./utils/logger";
+import hpp from "hpp";
+const app: Application = express();
+// Sentry.setupExpressErrorHandler(app);
+
+app.set("trust proxy", 1);
+app.use(helmet());
+app.use(
+  cors({
+    origin: env.CORS_ORIGINS,
+    credentials: true,
+  }),
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(hpp());
+app.use(
+  pinoHttp({
+    logger,
+    genReqId: () => crypto.randomUUID(),
+  }),
+);
+app.use((req, res, next) => {
+  if (req.id) {
+    res.setHeader("X-Request-Id", req.id as string);
+  }
+  next();
+});
+app.use(compression());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again later.",
+});
+if (env.NODE_ENV !== "test") {
+  app.use("/api", limiter);
+}
+
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    message: "AI Product Search API is Running",
+    version: "1.0.0",
+    server_time: new Date().toISOString(),
+  });
+});
+app.use("/api/v1", routes);
+
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
+
+export default app;
+</file>
+
+<file path="src/application/usecases/PredictUseCase.ts">
+import type { IAiProvider } from "../../domain/external/IAiProvider.js";
+import type { IDataRepository } from "../../domain/repositories/IDataRepository.js";
+
+export class PredictUseCase {
+  constructor(
+    private aiProvider: IAiProvider,
+    private dataRepository: IDataRepository,
+  ) {}
+
+  async execute(text: string, limit = 10) {
+    const prediction = await this.aiProvider.extractIntentAndEntities(text);
+
+    const data = await this.dataRepository.fetchDataByIntentAndEntities(
+      prediction,
+      limit,
+    );
+
+    return {
+      structured_output: prediction,
+      retrieved_data: data,
+    };
+  }
+}
+</file>
+
+<file path="src/config/env.ts">
+import { z } from "zod";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const envSchema = z.object({
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  PORT: z.coerce.number().default(3000),
+  DATABASE_URL: z.string().url(),
+  CORS_ORIGINS: z
+    .string()
+    .default("http://localhost:3000")
+    .transform((val) => val.split(",").map((origin) => origin.trim())),
+  GEMINI_API_KEY: z.string().min(1),
+});
+
+const _env = envSchema.safeParse(process.env);
+
+if (!_env.success) {
+  console.error("❌ Invalid environment variables:", _env.error.format());
+  process.exit(1);
+}
+
+export const env = _env.data;
+</file>
+
+<file path="src/domain/dtos/PredictionDTO.ts">
+import { z } from "zod";
+
+export const predictionSchema = z.object({
+  intent: z.enum([
+    "product_search",
+    "audience_search",
+    "campaign_search",
+    "performance_query",
+    "unknown",
+  ]),
+  entities: z.object({
+    category: z.string().optional(),
+    target: z.string().optional(),
+    price_max: z.number().optional(),
+    brand: z.string().optional(),
+    budget_max: z.number().optional(),
+    campaign_name: z.string().optional(),
+  }),
+});
+
+export type PredictionResult = z.infer<typeof predictionSchema>;
+</file>
+
+<file path="src/domain/dtos/PredictRequestDTO.ts">
+import { z } from "zod";
+
+export const predictRequestSchema = {
+  body: z.object({
+    text: z
+      .string({ error: "Text input is required" })
+      .min(3, "Text is too short"),
+    limit: z.number().min(1).max(100).optional(),
+  }),
+};
+</file>
+
+<file path="src/domain/errors/AppError.ts">
+export class AppError extends Error {
+  public readonly statusCode: number;
+  public readonly isOperational: boolean;
+
+  constructor(statusCode: number, message: string, isOperational = true) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+
+    Object.setPrototypeOf(this, new.target.prototype);
+    Error.captureStackTrace(this);
+  }
+}
+</file>
+
+<file path="src/domain/errors/ConflictError.ts">
+import { StatusCodes } from "http-status-codes";
+import { AppError } from "./AppError.js";
+
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super(StatusCodes.CONFLICT, message, true);
+    this.name = "ConflictError";
+  }
+}
+</file>
+
+<file path="src/domain/errors/NotFoundError.ts">
+import { StatusCodes } from "http-status-codes";
+import { AppError } from "./AppError";
+
+export class NotFoundError extends AppError {
+  constructor(message: string) {
+    super(StatusCodes.NOT_FOUND, message, true);
+    this.name = "NotFoundError";
+  }
+}
+</file>
+
+<file path="src/domain/external/IAiProvider.ts">
+import type { PredictionResult } from "../dtos/PredictionDTO.js";
+
+export interface IAiProvider {
+  extractIntentAndEntities(prompt: string): Promise<PredictionResult>;
+}
+</file>
+
+<file path="src/domain/repositories/IDataRepository.ts">
+import type { PredictionResult } from "../dtos/PredictionDTO.js";
+import type { Product, Audience, Campaign, Performance } from "@prisma/client";
+
+export type QueryDataResult =
+  | Product[]
+  | Audience[]
+  | Campaign[]
+  | Performance[];
+
+export interface IDataRepository {
+  fetchDataByIntentAndEntities(
+    prediction: PredictionResult,
+    limit: number,
+  ): Promise<QueryDataResult>;
+}
+</file>
+
+<file path="src/infrastructure/database/prisma.ts">
+import { PrismaClient } from "@prisma/client";
+import { env } from "../../config/env";
+
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log:
+      env.NODE_ENV === "development"
+        ? ["query", "error", "warn"]
+        : env.NODE_ENV === "test"
+          ? []
+          : ["error"],
+  });
+};
+
+declare global {
+  var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
+}
+
+export const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
+
+if (env.NODE_ENV !== "production") globalThis.prismaGlobal = prisma;
+</file>
+
+<file path="src/infrastructure/database/repositories/DataRepository.ts">
+import type { PrismaClient, Prisma } from "@prisma/client";
+import type {
+  IDataRepository,
+  QueryDataResult,
+} from "../../../domain/repositories/IDataRepository.js";
+import type { PredictionResult } from "../../../domain/dtos/PredictionDTO.js";
+
+export class DataRepository implements IDataRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async fetchDataByIntentAndEntities(
+    prediction: PredictionResult,
+    limit: number,
+  ): Promise<QueryDataResult> {
+    const { intent, entities } = prediction;
+
+    switch (intent) {
+      case "product_search": {
+        const where: Prisma.ProductWhereInput = {};
+        if (entities.category) {
+          where.category = { contains: entities.category, mode: "insensitive" };
+        }
+        if (entities.brand) {
+          where.brand = { contains: entities.brand, mode: "insensitive" };
+        }
+        if (entities.price_max && entities.price_max > 0) {
+          where.price = { lte: entities.price_max };
+        }
+        return await this.prisma.product.findMany({
+          where,
+          take: limit,
+        });
+      }
+
+      case "audience_search": {
+        const where: Prisma.AudienceWhereInput = {};
+        if (entities.target) {
+          where.age_range = { contains: entities.target, mode: "insensitive" };
+        }
+        return await this.prisma.audience.findMany({ where, take: 10 });
+      }
+
+      case "campaign_search": {
+        const where: Prisma.CampaignWhereInput = {};
+        if (entities.budget_max && entities.budget_max > 0) {
+          where.budget = { lte: entities.budget_max };
+        }
+
+        return await this.prisma.campaign.findMany({
+          where,
+          include: {
+            product: true,
+            audience: true,
+          },
+          take: 10,
+        });
+      }
+
+      case "performance_query": {
+        const where: Prisma.PerformanceWhereInput = {};
+
+        if (entities.campaign_name) {
+          where.campaign = {
+            name: { contains: entities.campaign_name, mode: "insensitive" },
+          };
+        }
+
+        return await this.prisma.performance.findMany({
+          where,
+          include: {
+            campaign: {
+              include: {
+                product: true,
+                audience: true,
+              },
+            },
+          },
+          take: 10,
+        });
+      }
+
+      default:
+        return [];
+    }
+  }
+}
+</file>
+
+<file path="src/infrastructure/di/container.ts">
+import { prisma } from "../database/prisma.js";
+import type { PrismaClient } from "@prisma/client/extension";
+import { GeminiProvider } from "../external/GeminiProvider.js";
+import { DataRepository } from "../database/repositories/DataRepository.js";
+import { PredictUseCase } from "../../application/usecases/PredictUseCase.js";
+import { PredictController } from "../../presentation/controllers/PredictController.js";
+
+export const createContainer = (dbClient: PrismaClient) => {
+  const aiProvider = new GeminiProvider();
+  const dataRepository = new DataRepository(dbClient);
+
+  const predictUseCase = new PredictUseCase(aiProvider, dataRepository);
+
+  const predictController = new PredictController(predictUseCase);
+
+  return {
+    db: dbClient,
+    aiProvider,
+    predictController,
+  };
+};
+
+export const container = createContainer(prisma);
+</file>
+
+<file path="src/infrastructure/external/GeminiProvider.ts">
+import {
+  GoogleGenerativeAI,
+  type Schema,
+  SchemaType,
+} from "@google/generative-ai";
+import { env } from "../../config/env.js";
+import type { IAiProvider } from "../../domain/external/IAiProvider.js";
+import {
+  predictionSchema,
+  type PredictionResult,
+} from "../../domain/dtos/PredictionDTO.js";
+import { AppError } from "../../domain/errors/AppError.js";
+import { StatusCodes } from "http-status-codes";
+
+export class GeminiProvider implements IAiProvider {
+  private genAI: GoogleGenerativeAI;
+
+  private modelName = "gemini-2.5-flash";
+  constructor() {
+    this.genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+  }
+
+  async extractIntentAndEntities(prompt: string): Promise<PredictionResult> {
+    try {
+      const responseSchema: Schema = {
+        type: SchemaType.OBJECT,
+        properties: {
+          intent: {
+            type: SchemaType.STRING,
+            description:
+              "Classify the user intent into one of the following: product_search, audience_search, campaign_search, performance_query, or unknown.",
+          },
+          entities: {
+            type: SchemaType.OBJECT,
+            properties: {
+              category: {
+                type: SchemaType.STRING,
+                description: "Product category, e.g., skincare, laptop, shoes.",
+              },
+              target: {
+                type: SchemaType.STRING,
+                description: "Target audience, e.g., gen z, teens, adults.",
+              },
+              price_max: {
+                type: SchemaType.NUMBER,
+                description: "Maximum price mentioned as a number.",
+              },
+              brand: {
+                type: SchemaType.STRING,
+                description: "Specific brand mentioned.",
+              },
+              budget_max: {
+                type: SchemaType.NUMBER,
+                description: "Maximum budget for the campaign as a number.",
+              },
+              campaign_name: {
+                type: SchemaType.STRING,
+                description: "Specific name of the queried campaign.",
+              },
+            },
+          },
+        },
+        required: ["intent", "entities"],
+      };
+
+      const model = this.genAI.getGenerativeModel({
+        model: this.modelName,
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+        },
+      });
+
+      const systemInstruction = `You are an AI information extraction system. 
+        Your task is to convert natural language input into a structured JSON format. 
+        Do not make assumptions. If an entity is not explicitly mentioned, omit the field entirely. DO NOT use -1, 0, or "none" for empty fields.
+        
+        IMPORTANT RULES:
+        1. Normalize entities to singular base form (e.g., "millennials" -> "millennial").
+        2. DO NOT include generic words like "products", "items", "campaigns", or "audience" in the extracted values. If user says "health products", the category is simply "health".
+        3. Ensure all extracted text is in lowercase.`;
+
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        systemInstruction: {
+          role: "system",
+          parts: [{ text: systemInstruction }],
+        },
+      });
+
+      const textResponse = result.response.text();
+
+      const cleanedText = textResponse
+        .replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
+
+      const parsedJson = JSON.parse(cleanedText);
+      const validatedData = predictionSchema.parse(parsedJson);
+      return validatedData;
+    } catch (e) {
+      console.error(e);
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        "Failed to extract information. Please ensure your prompt is clear and relevant.",
+      );
+    }
+  }
+}
+</file>
+
+<file path="src/middlewares/errorHandler.ts">
+import type { Request, Response, NextFunction } from "express";
+import { sendResponse } from "../utils/response";
+import { env } from "../config/env";
+import { StatusCodes } from "http-status-codes";
+import { ZodError } from "zod";
+import { AppError } from "../domain/errors/AppError.js";
+import * as Sentry from "@sentry/node";
+
+export const notFoundHandler = (req: Request, res: Response): void => {
+  sendResponse(
+    res,
+    StatusCodes.NOT_FOUND,
+    `Endpoint ${req.originalUrl} not found`,
+  );
+};
+
+export const globalErrorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+): void => {
+  req.log?.error(err);
+
+  const isProd = env.NODE_ENV === "production";
+  let statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
+  let message = "Internal Server Error";
+  let errorsDetail: unknown = undefined;
+
+  if (
+    err instanceof SyntaxError &&
+    "status" in err &&
+    err.status === 400 &&
+    "body" in err
+  ) {
+    statusCode = StatusCodes.BAD_REQUEST;
+    message = "Invalid JSON payload passed";
+    errorsDetail = { detail: err.message };
+  } else if (err instanceof ZodError) {
+    statusCode = StatusCodes.BAD_REQUEST;
+    message = "Validation Error";
+    errorsDetail = err.issues.map((e) => ({
+      field: e.path.join("."),
+      message: e.message,
+    }));
+  } else if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    message = err.message;
+  }
+
+  if (statusCode === StatusCodes.INTERNAL_SERVER_ERROR) {
+    Sentry.captureException(err);
+  }
+
+  const shouldShowStack =
+    !isProd && statusCode === StatusCodes.INTERNAL_SERVER_ERROR;
+
+  sendResponse(
+    res,
+    statusCode,
+    message,
+    null,
+    errorsDetail ??
+      (shouldShowStack
+        ? { message: err.message, stack: err.stack }
+        : undefined),
+  );
+};
+</file>
+
+<file path="src/middlewares/validate.ts">
+import type { Request, Response, NextFunction } from "express";
+import type { z } from "zod";
+
+interface ValidationSchemas {
+  body?: z.ZodTypeAny;
+  query?: z.ZodTypeAny;
+  params?: z.ZodTypeAny;
+}
+
+export const validate = (schemas: ValidationSchemas) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    try {
+      if (schemas.body) {
+        req.body = schemas.body.parse(req.body);
+      }
+
+      if (schemas.params) {
+        const validatedParams = schemas.params.parse(req.params);
+        Object.keys(req.params).forEach((key) => delete req.params[key]);
+        Object.assign(req.params, validatedParams);
+      }
+
+      if (schemas.query) {
+        const validatedQuery = schemas.query.parse(req.query);
+
+        Object.keys(req.query).forEach((key) => delete req.query[key]);
+
+        Object.assign(req.query, validatedQuery);
+      }
+
+      next();
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+};
+</file>
+
+<file path="src/presentation/controllers/PredictController.ts">
+import type { Request, Response, NextFunction } from "express";
+import type { PredictUseCase } from "../../application/usecases/PredictUseCase.js";
+import { sendResponse } from "../../utils/response.js";
+import { StatusCodes } from "http-status-codes";
+
+export class PredictController {
+  constructor(private predictUseCase: PredictUseCase) {}
+
+  predict = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { text, limit } = req.body;
+      const result = await this.predictUseCase.execute(text, limit);
+
+      sendResponse(
+        res,
+        StatusCodes.OK,
+        "Prediction and data retrieval successful",
+        result,
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+</file>
+
+<file path="src/presentation/routes/index.ts">
+import { Router } from "express";
+import { container } from "../../infrastructure/di/container.js";
+import { validate } from "../../middlewares/validate.js";
+import { predictRequestSchema } from "../../domain/dtos/PredictRequestDTO.js";
+
+export const createMainRouter = (deps: typeof container): Router => {
+  const router = Router();
+
+  router.post(
+    "/predict",
+    validate(predictRequestSchema),
+    deps.predictController.predict,
+  );
+
+  return router;
+};
+
+const router = createMainRouter(container);
+export default router;
+</file>
+
+<file path="src/server.ts">
+import app from "./app";
+import { env } from "./config/env";
+import { prisma } from "./infrastructure/database/prisma";
+import { logger } from "./utils/logger";
+const PORT = env.PORT;
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+});
+const shutdown = (signal: string) => {
+  console.log(`\n${signal} received. Closing resources...`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    console.log("HTTP server and Database connection closed.");
+    process.exit(0);
+  });
+};
+process.on("uncaughtException", (err) => {
+  logger.fatal(err, "Uncaught Exception detected. Shutting down server...");
+  process.exit(1);
+});
+
+process.on("unhandledRejection", async (reason) => {
+  logger.fatal({ reason }, "Unhandled Rejection");
+  await prisma.$disconnect();
+  server.close(() => process.exit(1));
+});
+process.on("SIGUSR2", () => shutdown("SIGUSR2"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+</file>
+
+<file path="src/tests/factories/index.ts">
+
+</file>
+
+<file path="src/tests/setup.ts">
+import { prisma } from "../infrastructure/database/prisma";
+
+export const prismaTest = prisma;
+
+export const clearDatabase = async () => {
+  const tableNames = await prismaTest.$queryRaw<
+    { TABLE_NAME: string }[]
+  >`SELECT TABLE_NAME from information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME != '_prisma_migrations';`;
+
+  for (const { TABLE_NAME } of tableNames) {
+    if (TABLE_NAME !== "_prisma_migrations") {
+      try {
+        await prismaTest.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 0;`);
+        await prismaTest.$executeRawUnsafe(`TRUNCATE TABLE \`${TABLE_NAME}\`;`);
+        await prismaTest.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 1;`);
+      } catch (error) {
+        console.log({ error });
+      }
+    }
+  }
+};
+
+export const disconnectDatabase = async () => {
+  await prismaTest.$disconnect();
+};
+</file>
+
+<file path="src/types/express.d.ts">
+import type { JwtUserPayload } from "../domain/dtos/UserDTO.js";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtUserPayload;
+    }
+  }
+}
+</file>
+
+<file path="src/types/request.ts">
+import type { Request } from "express";
+import type { z } from "zod";
+
+export type TypedRequest<
+  TBody extends z.ZodTypeAny = z.ZodTypeAny,
+  TQuery extends z.ZodTypeAny = z.ZodTypeAny,
+  TParams extends z.ZodTypeAny = z.ZodTypeAny,
+> = Request<z.infer<TParams>, unknown, z.infer<TBody>, z.infer<TQuery>>;
+</file>
+
+<file path="src/types/response.ts">
+export interface CursorPaginationMeta {
+  nextCursor: string | number | null;
+  hasNextPage: boolean;
+}
+
+export interface CursorPaginatedData<T> {
+  items: T[];
+  meta: CursorPaginationMeta;
+}
+
+export interface ApiResponse<T = null> {
+  success: boolean;
+  message: string;
+  data: T | null;
+  error?: unknown;
+}
+
+export interface OffsetPaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface OffsetPaginatedData<T> {
+  items: T[];
+  meta: OffsetPaginationMeta;
+}
+</file>
+
+<file path="src/utils/logger.ts">
+import pino from "pino";
+import { env } from "../config/env";
+
+export const logger = pino({
+  level:
+    env.NODE_ENV === "test"
+      ? "silent"
+      : env.NODE_ENV === "production"
+        ? "info"
+        : "debug",
+  redact: ["req.headers.authorization", "req.headers.cookie"],
+
+  serializers: {
+    req: () => undefined,
+    res: () => undefined,
+  },
+
+  ...(env.NODE_ENV !== "production" &&
+    env.NODE_ENV !== "test" && {
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          ignore: "req,res,pid,hostname,responseTime",
+          translateTime: "SYS:standard",
+        },
+      },
+    }),
+});
+</file>
+
+<file path="src/utils/response.ts">
+import type { Response } from "express";
+import type { ApiResponse } from "../types/response";
+
+export const sendResponse = <T>(
+  res: Response<ApiResponse<T>>,
+  statusCode: number,
+  message: string,
+  data: T | null = null,
+  error?: unknown,
+): void => {
+  res.status(statusCode).json({
+    success: statusCode >= 200 && statusCode < 300,
+    message,
+    data,
+    ...(error ? { error } : {}),
+  });
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "module": "ESNext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "types": [],
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma/seed.ts", "prisma/seeds/**/*"]
+}
+</file>
+
+</files>

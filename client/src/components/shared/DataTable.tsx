@@ -100,7 +100,7 @@ const DataTable = ({
               </span>
             )}
           </div>
-          <p className="text-[13px] text-slate-500 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
+          <p className="text-[13px] text-slate-500 font-medium">Manage and monitor operational information in real-time.</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
@@ -108,7 +108,7 @@ const DataTable = ({
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
             <input
               type="text"
-              placeholder="Cari data..."
+              placeholder="Search data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
@@ -121,7 +121,7 @@ const DataTable = ({
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer"
             >
               <Plus size={16} strokeWidth={2.5} />
-              Tambah Data
+              Add Data
             </button>
           )}
         </div>
@@ -138,7 +138,7 @@ const DataTable = ({
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Actions</th>
               )}
             </tr>
           </thead>
@@ -200,9 +200,9 @@ const DataTable = ({
                     <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
                       <FileX2 size={28} className="text-slate-400" />
                     </div>
-                    <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
+                    <h3 className="text-slate-800 font-bold mb-1">No data found</h3>
                     <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
-                      Coba sesuaikan filter atau kata kunci pencarian Anda untuk menemukan data.
+                      Try adjusting your filters or search keywords to find data.
                     </p>
                   </div>
                 </td>
@@ -217,9 +217,9 @@ const DataTable = ({
         <div className="p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
           <span className="text-[13px] font-medium text-slate-500">
             {hasNextPage !== undefined ? (
-              "Navigasi Data Halaman"
+              "Data Navigation"
             ) : (
-              <>Halaman <strong className="text-slate-900">{page}</strong> dari <strong className="text-slate-900">{totalPages}</strong></>
+              <>Page <strong className="text-slate-900">{page}</strong> of <strong className="text-slate-900">{totalPages}</strong></>
             )}
           </span>
 

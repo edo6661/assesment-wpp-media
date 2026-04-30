@@ -44,7 +44,7 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             <div className="flex justify-between items-center px-8 py-6 border-b border-zinc-100 bg-white shrink-0">
               <div>
                 <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{title}</h3>
-                <p className="text-[12px] text-zinc-400 font-medium mt-1">Detail informasi tersimpan di sistem</p>
+                <p className="text-[12px] text-zinc-400 font-medium mt-1">Detailed information stored in the system</p>
               </div>
               <button
                 onClick={onClose}

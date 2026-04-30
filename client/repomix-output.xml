@@ -1,0 +1,1236 @@
+kode frontend:
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import { QueryProvider } from './providers/QueryProvider';
+import RootLayout from './components/layouts/RootLayout';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const App = () => {
+  return (
+    <QueryProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route element={<RootLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </QueryProvider>
+  );
+};
+export default App;
+</file>
+
+<file path="src/components/layouts/RootLayout.tsx">
+import { Outlet } from 'react-router-dom';
+const RootLayout = () => {
+  return (
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+export default RootLayout;
+</file>
+
+<file path="src/components/Navbar.tsx">
+const Navbar = () => {
+  return (
+    <div>Navbar</div>
+  )
+}
+
+export default Navbar
+</file>
+
+<file path="src/components/shared/CurrencyInput.tsx">
+import React from 'react';
+interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
+  label: string;
+  error?: string;
+  value: number | string;
+  onValueChange: (name: string, value: number) => void;
+  name: string;
+}
+const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
+  const displayValue = value === 0 || value === '' ? '' : new Intl.NumberFormat('id-ID').format(Number(value));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const numericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, numericValue);
+  };
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <span className="text-slate-500 font-medium text-sm">Rp</span>
+        </div>
+        <input
+          type="text"
+          name={name}
+          value={displayValue}
+          onChange={handleChange}
+          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
+            }`}
+          {...props}
+        />
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+export default CurrencyInput;
+</file>
+
+<file path="src/components/shared/DataTable.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
+
+interface Column {
+  header: string;
+  accessor: string;
+  render?: (value: any, row: any) => React.ReactNode;
+}
+
+interface DataTableProps {
+  title: string;
+  columns: Column[];
+  data: any[];
+  onAdd?: () => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  expandedRowRender?: (row: any) => React.ReactNode;
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+
+  // Pagination Offset (Lama)
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+
+  // Pagination Cursor (Baru)
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+}
+
+const DataTable = ({
+  title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange,
+  page = 1, totalPages = 1, onPageChange,
+  hasNextPage, hasPrevPage, onNextPage, onPrevPage
+}: DataTableProps) => {
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+
+    const lowercasedTerm = localSearchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, localSearchTerm, columns, serverSide]);
+
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
+
+  return (
+    <div className="bg-white rounded-[20px] shadow-sm border border-slate-200/80 overflow-hidden flex flex-col transition-all duration-300">
+
+      {/* Header Tabel */}
+      <div className="p-6 md:px-8 md:py-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 border-b border-slate-100">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h2>
+            {!serverSide && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-slate-200/60">
+                {filteredData.length} Data
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] text-slate-500 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-64 group">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 hover:shadow-lg transition-all duration-300 font-bold text-[13px] active:scale-95 cursor-pointer"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200/60">
+              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-4 whitespace-nowrap">
+                  {col.header}
+                </th>
+              ))}
+              {(onEdit || onDelete) && (
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/50'} ${isExpanded ? 'bg-slate-50/80' : ''}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                        </td>
+                      ))}
+                      {(onEdit || onDelete) && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            {onEdit && (
+                              <button onClick={() => onEdit(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer">
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button onClick={() => onDelete(row)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer">
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/30">
+                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                  <div className="flex flex-col items-center max-w-sm mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
+                      <FileX2 size={28} className="text-slate-400" />
+                    </div>
+                    <h3 className="text-slate-800 font-bold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-[13px] font-medium leading-relaxed">
+                      Coba sesuaikan filter atau kata kunci pencarian Anda untuk menemukan data.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination Dinamis (Offset atau Cursor) */}
+      {serverSide && (totalPages > 1 || hasNextPage !== undefined) && (
+        <div className="p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+          <span className="text-[13px] font-medium text-slate-500">
+            {hasNextPage !== undefined ? (
+              "Navigasi Data Halaman"
+            ) : (
+              <>Halaman <strong className="text-slate-900">{page}</strong> dari <strong className="text-slate-900">{totalPages}</strong></>
+            )}
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            {/* Prev Button */}
+            <button
+              onClick={() => onPrevPage ? onPrevPage() : onPageChange?.(page - 1)}
+              disabled={onPrevPage ? !hasPrevPage : page === 1}
+              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+            >
+              <ChevronLeft size={18} />
+              {hasNextPage !== undefined && <span className="text-sm font-semibold">Prev</span>}
+            </button>
+
+            {/* Offset Pagination Numbers (Disembunyikan jika mode Cursor aktif) */}
+            {hasNextPage === undefined && getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold tracking-widest">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[36px] h-9 flex items-center justify-center rounded-lg text-[13px] font-bold transition-all cursor-pointer border ${page === num
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            {/* Next Button */}
+            <button
+              onClick={() => onNextPage ? onNextPage() : onPageChange?.(page + 1)}
+              disabled={onNextPage ? !hasNextPage : page === totalPages}
+              className="px-3 py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-200 flex items-center gap-1.5"
+            >
+              {hasNextPage !== undefined && <span className="text-sm font-semibold">Next</span>}
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataTable;
+</file>
+
+<file path="src/components/shared/FileInput.tsx">
+import type { InputHTMLAttributes } from 'react';
+import { UploadCloud } from 'lucide-react';
+
+interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const FileInput = ({ label, error, ...props }: FileInputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="file"
+          className={`block w-full text-sm text-slate-500
+            file:mr-4 file:py-2.5 file:px-4
+            file:rounded-l-xl file:border-0
+            file:text-xs file:font-bold file:uppercase file:tracking-widest
+            file:bg-slate-900 file:text-white
+            hover:file:bg-black file:transition-all
+            file:cursor-pointer cursor-pointer
+            border rounded-xl shadow-sm/50 transition-all duration-300
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
+            }
+          `}
+          {...props}
+        />
+        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
+          <UploadCloud size={18} />
+        </div>
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default FileInput;
+</file>
+
+<file path="src/components/shared/Input.tsx">
+import type { InputHTMLAttributes } from 'react';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const Input = ({ label, error, ...props }: InputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest transition-colors group-focus-within:text-zinc-900 ml-1">
+        {label}
+      </label>
+      <input
+        className={`w-full px-4 py-3.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-zinc-400 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:cursor-not-allowed disabled:border-zinc-200
+          ${error
+            ? 'border-red-300 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-zinc-900'
+            : 'border-zinc-200 hover:border-zinc-300 focus:bg-white focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 text-zinc-900 bg-zinc-50/50'
+          }`}
+        {...props}
+      />
+      {error && (
+        <span className="text-[11px] font-semibold text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Input;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm transition-all"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative bg-white rounded-[24px] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-zinc-900/5 overflow-hidden"
+          >
+            <div className="flex justify-between items-center px-8 py-6 border-b border-zinc-100 bg-white shrink-0">
+              <div>
+                <h3 className="text-xl font-bold text-zinc-900 tracking-tight">{title}</h3>
+                <p className="text-[12px] text-zinc-400 font-medium mt-1">Detail informasi tersimpan di sistem</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2.5 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-all cursor-pointer bg-zinc-50"
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto custom-scrollbar bg-zinc-50/30">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
+</file>
+
+<file path="src/components/shared/Select.tsx">
+import type { SelectHTMLAttributes } from 'react';
+
+interface Option {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  options: Option[];
+  error?: string;
+}
+
+const Select = ({ label, options, error, ...props }: SelectProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest transition-colors group-focus-within:text-zinc-900 ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          className={`w-full px-4 py-3.5 text-sm rounded-xl border transition-all duration-300 outline-none cursor-pointer appearance-none disabled:bg-zinc-50 disabled:text-zinc-400 disabled:cursor-not-allowed disabled:border-zinc-200
+            ${error
+              ? 'border-red-300 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-zinc-900'
+              : 'border-zinc-200 hover:border-zinc-300 focus:bg-white focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 text-zinc-900 bg-zinc-50/50'
+            }`}
+          {...props}
+        >
+          <option value="" disabled>Pilih {label}...</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="py-2">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {/* Custom Arrow Icon */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-zinc-400 group-focus-within:text-zinc-900 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+      {error && (
+        <span className="text-[11px] font-semibold text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Select;
+</file>
+
+<file path="src/components/Sidebar.tsx">
+const Sidebar = () => {
+  return (
+    <div>Sidebar</div>
+  )
+}
+
+export default Sidebar
+</file>
+
+<file path="src/hooks/useCrud.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "../lib/axios";
+
+export const useCrud = <T>(endpoint: string, queryKeyName: string) => {
+  const queryClient = useQueryClient();
+
+  const keys = {
+    all: [queryKeyName] as const,
+    detail: (id: string) => [queryKeyName, id] as const,
+  };
+
+  const getAll = useQuery({
+    queryKey: keys.all,
+    queryFn: async () => {
+      const { data } = await api.get<T[]>(endpoint);
+      return data;
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async (newData: Omit<T, "id">) => {
+      const { data } = await api.post<T>(endpoint, newData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, ...updateData }: Partial<T> & { id: string }) => {
+      const { data } = await api.put<T>(`${endpoint}/${id}`, updateData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`${endpoint}/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  return { keys, getAll, create, update, remove };
+};
+</file>
+
+<file path="src/hooks/useForm.ts">
+import { useState } from "react";
+
+export const useForm = <T>(
+  initialState: T,
+  validateFn?: (values: T) => Partial<Record<keyof T, string>>,
+) => {
+  const [formData, setFormData] = useState<T>(initialState);
+  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    const parsedValue =
+      type === "number" ? (value === "" ? 0 : Number(value)) : value;
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof T]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: keyof T,
+  ) => {
+    const file = e.target.files?.[0];
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: (file ? file.name : "") as unknown as T[keyof T],
+    }));
+  };
+
+  const validate = () => {
+    if (!validateFn) return true;
+    const newErrors = validateFn(formData);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const resetForm = () => {
+    setFormData(initialState);
+    setErrors({});
+  };
+
+  return {
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    handleChange,
+    handleFileChange,
+    validate,
+    resetForm,
+  };
+};
+</file>
+
+<file path="src/hooks/usePredict.ts">
+import { useMutation } from "@tanstack/react-query";
+import api from "../lib/axios";
+import type { ApiResponse } from "../types/api_response";
+import type { PredictResponse } from "../types/predict";
+import { handleApiError } from "../utils/errorHandler";
+
+export const usePredict = () => {
+  return useMutation({
+    mutationFn: async (text: string) => {
+      try {
+        const { data } = await api.post<ApiResponse<PredictResponse>>(
+          "/predict",
+          { text },
+        );
+        return data.data;
+      } catch (error) {
+        const parsedError = handleApiError(error);
+        throw new Error(parsedError.message);
+      }
+    },
+  });
+};
+</file>
+
+<file path="src/index.css">
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-heading: "", var(--font-sans);
+
+  --radius-btn: 10px;
+  --radius-card: 20px;
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-text: var(--sidebar-active-text);
+}
+
+:root {
+  --section-padding-y: 6rem;
+  --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --theme-background: #f1f5f9;
+  --theme-foreground: #1e293b;
+
+  --sidebar-bg: #f8fafc;
+  --sidebar-text: #64748b;
+  --sidebar-border: #e2e8f0;
+  --sidebar-hover-bg: #f1f5f9;
+  --sidebar-active-bg: #e0e7ff;
+  --sidebar-active-text: #4338ca;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-background: #0f172a;
+    --theme-foreground: #f8fafc;
+
+    --sidebar-bg: #0f172a;
+    --sidebar-text: #94a3b8;
+    --sidebar-border: #1e293b;
+    --sidebar-hover-bg: #1e293b;
+    --sidebar-active-bg: #1e1b4b;
+    --sidebar-active-text: #818cf8;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background-color: var(--theme-background);
+  color: var(--theme-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.03em;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 20px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+</file>
+
+<file path="src/lib/axios.ts">
+import axios from "axios";
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+api.interceptors.request.use((config) => {
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
+export default api;
+</file>
+
+<file path="src/main.tsx">
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <App />
+);
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+import React, { useState, useMemo } from 'react';
+import { Sparkles, Send, Bot, AlertCircle, Database } from 'lucide-react';
+import { usePredict } from '../hooks/usePredict';
+import DataTable from '../components/shared/DataTable';
+const Dashboard = () => {
+  const [prompt, setPrompt] = useState('');
+  const { mutate: predict, data, isPending, error } = usePredict();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim()) return;
+    predict(prompt);
+  };
+  const tableConfig = useMemo(() => {
+    if (!data) return null;
+    const intent = data.structured_output.intent;
+    switch (intent) {
+      case 'product_search':
+        return {
+          title: 'Products Inventory',
+          columns: [
+            { header: 'Product Name', accessor: 'name' },
+            { header: 'Brand', accessor: 'brand' },
+            { header: 'Category', accessor: 'category', render: (val: string) => <span className="capitalize">{val}</span> },
+            { header: 'Price', accessor: 'price', render: (val: number | string) => `Rp ${new Intl.NumberFormat('id-ID').format(Number(val))}` },
+          ]
+        };
+      case 'audience_search':
+        return {
+          title: 'Target Audiences',
+          columns: [
+            { header: 'Audience Name', accessor: 'name' },
+            { header: 'Age Range', accessor: 'age_range', render: (val: string) => <span className="uppercase text-xs font-bold">{val}</span> },
+            { header: 'Preferences', accessor: 'preferences' },
+          ]
+        };
+      case 'campaign_search':
+        return {
+          title: 'Marketing Campaigns',
+          columns: [
+            { header: 'Campaign Name', accessor: 'name' },
+            { header: 'Target Audience', accessor: 'audience', render: (val: any) => val?.name || '-' },
+            { header: 'Featured Product', accessor: 'product', render: (val: any) => val?.name || '-' },
+            { header: 'Budget', accessor: 'budget', render: (val: number | string) => `Rp ${new Intl.NumberFormat('id-ID').format(Number(val))}` },
+          ]
+        };
+      case 'performance_query':
+        return {
+          title: 'Campaign Performance',
+          columns: [
+            { header: 'Campaign', accessor: 'campaign', render: (val: any) => <span className="font-bold">{val?.name || '-'}</span> },
+            { header: 'Impressions', accessor: 'impressions', render: (val: number) => new Intl.NumberFormat('id-ID').format(val) },
+            { header: 'Clicks', accessor: 'clicks', render: (val: number) => new Intl.NumberFormat('id-ID').format(val) },
+            { header: 'Conversions', accessor: 'conversions', render: (val: number) => <span className="text-green-600 font-bold">{new Intl.NumberFormat('id-ID').format(val)}</span> },
+          ]
+        };
+      default:
+        return {
+          title: 'Search Results',
+          columns: [
+            { header: 'ID', accessor: 'id' }
+          ]
+        };
+    }
+  }, [data]);
+  return (
+    <div className="min-h-screen bg-slate-50/50 p-6 md:p-12">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center p-3 bg-indigo-100 text-indigo-600 rounded-2xl mb-2">
+            <Bot size={32} strokeWidth={2.5} />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">AI Data Assistant</h1>
+          <p className="text-slate-500 font-medium">Query your relational database using natural language.</p>
+        </div>
+        <div className="bg-white p-4 rounded-[24px] shadow-sm border border-slate-200/60 max-w-3xl mx-auto">
+          <form onSubmit={handleSubmit} className="relative flex items-center">
+            <div className="absolute left-4 text-slate-400">
+              <Sparkles size={20} />
+            </div>
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g., Show me skincare products for gen z under 100k..."
+              className="w-full pl-12 pr-32 py-4 bg-transparent border-none text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-0 text-[15px]"
+              disabled={isPending}
+            />
+            <button
+              type="submit"
+              disabled={!prompt.trim() || isPending}
+              className="absolute right-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isPending ? 'Processing...' : 'Ask AI'}
+              {!isPending && <Send size={16} />}
+            </button>
+          </form>
+        </div>
+        {error && (
+          <div className="max-w-3xl mx-auto p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 text-red-600">
+            <AlertCircle size={20} className="mt-0.5 shrink-0" />
+            <p className="text-sm font-medium">{error.message}</p>
+          </div>
+        )}
+        {data && tableConfig && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white p-6 rounded-[20px] border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-6">
+              <div className="flex-1">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detected Intent</h3>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-bold text-sm border border-indigo-100">
+                  <Database size={16} />
+                  {data.structured_output.intent}
+                </div>
+              </div>
+              <div className="flex-[2] md:border-l md:border-slate-100 md:pl-6">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Extracted Entities</h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(data.structured_output.entities).map(([key, value]) => (
+                    value !== undefined && value !== null && value !== '' && (
+                      <div key={key} className="flex items-center px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[13px]">
+                        <span className="font-semibold text-slate-500 capitalize mr-2">{key.replace('_', ' ')}:</span>
+                        <span className="font-bold text-slate-800">
+                          {(typeof value === 'number' && (key.includes('price') || key.includes('budget')))
+                            ? `Rp ${new Intl.NumberFormat('id-ID').format(value)}`
+                            : String(value)}
+                        </span>
+                      </div>
+                    )
+                  ))}
+                  {Object.values(data.structured_output.entities).every(val => val === undefined || val === null || val === '') && (
+                    <span className="text-sm text-slate-400 italic">No specific entities detected.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {data.structured_output.intent === 'unknown' ? (
+              <div className="bg-white p-12 rounded-[20px] border border-slate-200/80 shadow-sm text-center flex flex-col items-center">
+                <AlertCircle size={32} className="text-slate-300 mb-3" />
+                <h3 className="text-slate-800 font-bold mb-1">Unrecognized Query</h3>
+                <p className="text-slate-500 text-sm">The AI couldn't map your query to a known dataset. Please try rephrasing.</p>
+              </div>
+            ) : (
+              <DataTable
+                title={tableConfig.title}
+                columns={tableConfig.columns}
+                data={data.retrieved_data}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+export default Dashboard;
+</file>
+
+<file path="src/pages/Home.tsx">
+const Home = () => {
+  return (
+    <div>Home</div>
+  )
+}
+
+export default Home
+</file>
+
+<file path="src/pages/PageLoader.tsx">
+import { Bot } from 'lucide-react';
+const PageLoader = () => {
+  return (
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 space-y-4">
+      <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl animate-pulse">
+        <Bot size={40} />
+      </div>
+      <p className="text-slate-500 font-medium animate-pulse">Loading Workspace...</p>
+    </div>
+  );
+};
+export default PageLoader;
+</file>
+
+<file path="src/providers/QueryProvider.tsx">
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useState, type ReactNode } from 'react';
+
+export const QueryProvider = ({ children }: { children: ReactNode }) => {
+
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5,
+            gcTime: 1000 * 60 * 15,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      })
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+    </QueryClientProvider>
+  );
+};
+</file>
+
+<file path="src/types/api_response.ts">
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+</file>
+
+<file path="src/types/common.ts">
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ActionResult<T = void> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  errors?: FieldError[];
+}
+</file>
+
+<file path="src/types/predict.ts">
+export interface PredictionEntities {
+  category?: string;
+  target?: string;
+  price_max?: number;
+  brand?: string;
+  budget_max?: number;
+  campaign_name?: string;
+}
+
+export interface PredictionIntent {
+  intent:
+    | "product_search"
+    | "audience_search"
+    | "campaign_search"
+    | "performance_query"
+    | "unknown";
+  entities: PredictionEntities;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: string | number;
+  brand: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Audience {
+  id: string;
+  name: string;
+  age_range: string;
+  preferences: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  budget: string | number;
+  product_id: string;
+  audience_id: string;
+
+  product?: Product;
+  audience?: Audience;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Performance {
+  id: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  campaign_id: string;
+
+  campaign?: Campaign;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type QueryDataResult =
+  | Product[]
+  | Audience[]
+  | Campaign[]
+  | Performance[];
+
+export interface PredictResponse {
+  structured_output: PredictionIntent;
+  retrieved_data: QueryDataResult;
+}
+</file>
+
+<file path="src/utils/errorHandler.ts">
+import { isAxiosError } from "axios";
+import type { ActionResult } from "../types/common";
+
+export const handleApiError = (error: unknown): ActionResult => {
+  if (import.meta.env.DEV) {
+    console.error("API Request failed:", error);
+  }
+
+  if (isAxiosError(error)) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Terjadi kesalahan pada server. Silakan coba lagi.",
+      errors: error.response?.data?.error,
+    };
+  }
+
+  return {
+    success: false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan tidak terduga.",
+  };
+};
+</file>
+
+<file path="src/utils/formatters.ts">
+export const formatDate = (dateString: string): string => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+</file>
+
+<file path="src/utils/storage.ts">
+export const storage = {};
+</file>
+
+<file path="tsconfig.json">
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+</file>
+
+<file path="vite.config.ts">
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import tailwindcss from "@tailwindcss/vite";
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+});
+</file>
+
+</files>
