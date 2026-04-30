@@ -61,7 +61,7 @@ export class DataRepository implements IDataRepository {
 
         if (entities.campaign_name) {
           where.campaign = {
-            name: { contains: entities.campaign_name },
+            name: { contains: entities.campaign_name, mode: "insensitive" },
           };
         }
 
